@@ -1,0 +1,22 @@
+## Meshing
+
+### General
+- [ ] Improve workflow for mesh generation
+- [ ] Add flexibility for multiple radial layers
+
+
+### Mapping
+- [ ] Check iglob --> ibool
+- [ ] Setup ibool --> iglob
+- [ ] Create global coordinate arrays
+- [ ] Complete set_gll (GLL setup function in element/mesh)
+
+### Integration
+- [ ] 3D GLL weights
+- [ ] Jacobians
+- [ ] Element normals
+
+
+### Further down the line
+- [ ] Doubling layers?
+- [ ] Multiple chunks?
