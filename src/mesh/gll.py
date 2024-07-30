@@ -84,7 +84,7 @@ def gll(N):
     else:
         raise NotImplementedError
 
-    return xi, weights
+    return np.array(xi), np.array(weights)
 
 
 def lagrange_alt(N, i, x, xi):
