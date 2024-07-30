@@ -6,14 +6,15 @@
 
 
 ### Mapping
-- [ ] Check iglob --> ibool
-- [ ] Setup ibool --> iglob
-- [ ] Create global coordinate arrays
+- [x] Check iglob --> ibool
+- [x] Create global coordinate arrays
 - [ ] Complete set_gll (GLL setup function in element/mesh)
 
+- [ ] Determine boundary terms
+
 ### Integration
-- [ ] 3D GLL weights
-- [ ] Jacobians
+- [x] 3D GLL weights
+- [x] Jacobians
 - [ ] Element normals
 
 
