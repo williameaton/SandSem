@@ -1,6 +1,6 @@
 import numpy as np
-from node import Node
-from face import Face
+from src.mesh.node import Node
+from src.mesh.face import Face
 
 class Hex():
     def __init__(self, ngll):

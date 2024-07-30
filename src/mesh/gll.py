@@ -202,5 +202,41 @@ def lagrange2nd(hdd, xi, NGL):
     return hdd
 
 
+def mapping_deriv_3GLL_analytical(x,y,z):
+    # x, y, z should be 3 x 3 x 3 matrices with values of X,Y,Z at GLL points
+    # Jij = del x_i/del Xi_j
+    ngll = 3
+    xi, w  = gll(ngll-1)
+    J = np.zeros((3,3,ngll,ngll,ngll))
+
+    # columns -> GLL nodes
+    # rows    -> order
+    ldash = lagrange1st(ngll-1)
+
+
+    c = [x,y,z]
+    # Loop over GLL points to compute derivatives at
+    for s in range(ngll):
+        for t in range(ngll):
+            for n in range(ngll):
+                # Loop over x,y,z
+                for i in range(3):
+                    cc = c[i]
+                    # Loop over xi, eta, zeta
+                    for j in range(3):
+                        val = 0
+
+                        for p in range(ngll):
+                            if  j == 0:
+                                val += cc[p,t,n]   * ldash[p,s]
+                            elif j == 1:
+                                val += cc[s, p, n] * ldash[p,t]
+                            elif j == 2:
+                                val += cc[s, t, p] *  ldash[p,n]
+                            else:
+                                raise ValueError()
+
+
+                        J[i,j,s,t,n] = val
 
 
