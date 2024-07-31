@@ -5,6 +5,9 @@ from wetools.funcs import map_csb_to_xyz
 from src.mesh.gll import gll, lagrange1st
 from src.mesh.hex import Hex
 from src.mesh.element import Element
+from src.mesh.boundary import Boundary
+from matplotlib.colors import Normalize
+
 
 
 class Mesh():
@@ -24,6 +27,18 @@ class Mesh():
         self.nelmts = 0
 
         self.homogeneous = {}
+
+        # Some default plotting characteristics:
+        self.scatter_size = 5
+
+
+
+        # Setup boundaries
+        self.boundaries = {}
+        for bound in ["bottom", "top", "side1", "side2", "side3", "side4"]:
+            self.boundaries[bound] = Boundary(bound)
+
+
 
     def add_element(self,e):
         # Add element and link to mesh
@@ -55,6 +70,7 @@ class Mesh():
         for k in range(self.nelem_rad):
             for i in range(self.nproc_xi):
                 for j in range(self.nproc_xi):
+                    # Loop GLLs
                     for izeta in range(n):
                         for ieta in range(n):
                             for ixi in range(n):
@@ -98,6 +114,7 @@ class Mesh():
         r   = np.linspace(self.rmin, self.rmax, self.nelem_radp1)
 
         n = self.ngll
+        ielmt_ctr = 0
         # Create element from its corners
         for k in range(self.nelem_rad):
             for i in range(self.nproc_xi):
@@ -107,12 +124,12 @@ class Mesh():
                     elem.coord_y = np.zeros((n, n, n))
                     elem.coord_z = np.zeros((n, n, n))
 
-                    xi1 = xi[i]
-                    xi2 = xi[i + 1]
+                    xi1  = xi[i]
+                    xi2  = xi[i + 1]
                     eta1 = eta[j]
                     eta2 = eta[j + 1]
-                    r1 = r[k]
-                    r2 = r[k + 1]
+                    r1   = r[k]
+                    r2   = r[k + 1]
 
                     # Corner nodes:
                     for rz in [r1, r2]:
@@ -121,9 +138,8 @@ class Mesh():
                         elem.cnodes_xyz.append(map_csb_to_xyz(xi1, eta2, rz, self.chunk))
                         elem.cnodes_xyz.append(map_csb_to_xyz(xi1, eta1, rz, self.chunk))
 
-                    # Interpolated nodes in CS basis:
+                    # Interpolated GLL nodes in CS basis:
                     g = self.gll
-
                     xi_int = (xi2 + xi1) / 2 + g * (xi2 - xi1) / 2
                     eta_int = (eta2 + eta1) / 2 + g * (eta2 - eta1) / 2
                     r_int = (r2 + r1) / 2 + g * (r2 - r1) / 2
@@ -135,8 +151,47 @@ class Mesh():
                                 elem.coord_x[xxi, eei, rri] = x
                                 elem.coord_y[xxi, eei, rri] = y
                                 elem.coord_z[xxi, eei, rri] = z
+
+
+                    # Designate boundaries:
+                    if k == 0:
+                        self._add_element_to_boundary(boundary="bottom", ielmt=ielmt_ctr, face=5, element=elem)
+                    if  k == self.nelem_rad-1:
+                        self._add_element_to_boundary(boundary="top", ielmt=ielmt_ctr, face=6, element=elem)
+                    if  i == 0:
+                        self._add_element_to_boundary(boundary="side1", ielmt=ielmt_ctr, face=3, element=elem)
+                    if  j == 0:
+                        self._add_element_to_boundary(boundary="side2", ielmt=ielmt_ctr, face=4, element=elem)
+                    if i == self.nproc_xi - 1:
+                        self._add_element_to_boundary(boundary="side3", ielmt=ielmt_ctr, face=5, element=elem)
+                    if  j == self.nproc_xi -1:
+                        self._add_element_to_boundary(boundary="side4", ielmt=ielmt_ctr, face=6, element=elem)
+
+                    ielmt_ctr += 1
+
                     elem.cnodes_xyz_to_np()
                     self.add_element(elem)
+
+
+        # Now all elements setup let us tag the 'boundary elements'
+        self._tag_boundary_elements()
+
+
+    def _tag_boundary_elements(self):
+        for el in self.elements:
+            if len(el.boundaries) > 0 :
+                be = True
+            else:
+                be = False
+            el.boundary_element = be
+
+
+
+    def _add_element_to_boundary(self, boundary, ielmt, face, element):
+        self.boundaries[boundary].elements.append(ielmt)
+        self.boundaries[boundary].face = face
+        self.boundaries[boundary].nfaces += 1
+        element.boundaries.append(boundary)
 
 
     def write_global_coords(self):
@@ -210,10 +265,10 @@ class Mesh():
                                  avg_elmts=False)
 
 
-    def map_local_to_global(self, local, glob=None, avg_elmts=False):
+    def map_local_to_global(self, local, glob=None, avg_elmts=True):
         # maps a local (elemental) array to a global array
         # values are averaged across the elemental values using the valency
-        if (glob==None).any():
+        if (np.array(glob==None)).any():
             glob = np.zeros((self.npoints))
         else:
             glob[:] = 0
@@ -234,6 +289,30 @@ class Mesh():
 
 
 
+    def map_global_to_local(self, glob, local=0):
+        """
+        maps a global array to the elements
+        :param glob:
+        :param local:
+        :return:
+        """
+
+        # Determine if local array was parsed
+        if type(local) == int:
+            local = np.zeros((self.ngll, self.ngll, self.ngll, self.nelmts))
+        else:
+            local[:,:,:] = 0
+
+        for ielmt in range(self.nelmts):
+            ib = self.elements[ielmt].ibool
+            for g in self.range_ngll:
+
+                iii = ib[:,:,g]
+                for b in self.range_ngll:
+                    for a in self.range_ngll:
+                        local[a,b,g,ielmt] += glob[ib[a,b,g]]
+
+        return local
 
     # ----------------------------- PLOTTING -----------------------------
 
@@ -256,8 +335,66 @@ class Mesh():
             fig = plt.figure()
             ax  = fig.add_subplot(projection='3d')
 
-        m = ax.scatter(self.gcoord_x, self.gcoord_y, self.gcoord_z, s=5, c=var)
+        m = ax.scatter(self.gcoord_x, self.gcoord_y, self.gcoord_z, s=self.scatter_size, c=var)
 
         fig.colorbar(m)
+
+        return ax
+
+
+    def plot_variable_histogram(self, var, fig=None, ax=None):
+        setup_we_mpl()
+
+        if ax==None:
+            fig = plt.figure()
+            ax  = fig.add_subplot()
+
+        m = ax.hist(var)
+
+        return ax
+
+
+
+    def plot_mesh_boundary(self, boundary_name, fig=None, ax=None, clr='k'):
+        setup_we_mpl()
+        if ax==None:
+            fig = plt.figure()
+            ax  = fig.add_subplot(projection='3d')
+
+        bb = self.boundaries[boundary_name]
+
+        for el_id in bb.elements:
+            self.elements[el_id].plot_face(face=bb.face, ax=ax, color=clr)
+        return ax
+
+
+
+    def plot_variable_on_mesh_boundary(self, boundary_name, variable, ax=None):
+        if ax==None:
+            fig = plt.figure()
+            ax  = fig.add_subplot(projection='3d')
+        else:
+            fig = ax.get_figure()
+
+        # Map the variable to element-wise:
+        loc = self.map_global_to_local(glob=variable)
+
+        # create cmap
+        minval = np.min(variable)
+        maxval = np.max(variable)
+        norm = Normalize(vmin=minval, vmax=maxval)
+
+
+        bb = self.boundaries[boundary_name]
+        for el_id in bb.elements:
+            map = self.elements[el_id].plot_face_with_data(face=bb.face, ax=ax, var=loc[:,:,:,el_id], norm=norm)
+
+
+        # Plot a colourbar that is a ~bit~ smaller in the x direction than the axis
+        aloc = ax.get_position()
+        xlen =  aloc.x1-aloc.x0
+        x20  = 0.2*xlen
+        cbar_ax = fig.add_axes([aloc.x0 + x20, aloc.y0*0.5, xlen - x20, 0.03])
+        fig.colorbar(map, cax=cbar_ax, orientation='horizontal')
 
         return ax

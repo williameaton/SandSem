@@ -4,6 +4,7 @@ class Element():
     def __init__(self):
         self.cnodes_xyz = []
         self.prop = {}
+        self.boundaries = []
 
     def add_corner_node(self,node):
         self.cnodes.append(node)
@@ -18,7 +19,6 @@ class Element():
         self.cnodes_xyz = cn
 
     def plot_element(self, ax3D):
-        cn  = self.cnodes_xyz
         cx = self.coord_x
         cy = self.coord_y
         cz = self.coord_z
@@ -52,25 +52,51 @@ class Element():
 
 
         # Plot nodes and or IBOOL ids of all GLL
-        for k in [-1]: #self.mesh.range_ngll:
+        for k in [0]: #self.mesh.range_ngll:
             for j in self.mesh.range_ngll:
                 for i in self.mesh.range_ngll:
                     """ax3D.scatter(cx[i, j, k],
                                  cy[i, j, k],
                                  cz[i, j, k], alpha=0.5, s=5, c='b')"""
-                    #ax3D.text(cx[i, j, k], cy[i, j, k], cz[i, j, k], s=str(self.ibool[i,j,k]), fontsize=5)
+                    ax3D.text(cx[i, j, k], cy[i, j, k], cz[i, j, k], s=str(self.ibool[i,j,k]), fontsize=5)
 
-    def _setup_gll(self):
-        print()
+
+    def plot_face(self, face, ax, color='k'):
+        order = 'F'
+        # Get element nodes to plot:
+        n = self.hex.faces[face-1].nodes
+        nodes = self.hex.faces[face-1].nodes.flatten(order=order)
+
+        cx = self.coord_x.flatten(order=order)[nodes]
+        cy = self.coord_y.flatten(order=order)[nodes]
+        cz = self.coord_z.flatten(order=order)[nodes]
+
+        ax.scatter(cx,cy,cz, c=color)
+
+
+
+    def plot_face_with_data(self, face, ax, norm, var=0):
+        order = 'F'
+        # Get element nodes to plot:
+        nodes = self.hex.faces[face - 1].nodes.flatten(order=order)
+
+        cx = self.coord_x.flatten(order=order)[nodes]
+        cy = self.coord_y.flatten(order=order)[nodes]
+        cz = self.coord_z.flatten(order=order)[nodes]
+
+        clrplot = var.flatten(order=order)[nodes]
+
+        m = ax.scatter(cx, cy, cz, c=clrplot, norm=norm, s=self.mesh.scatter_size)
+        return m
+
 
 
 
     def compute_jacobian(self):
-        self.jac = np.zeros((3,3, self.ngll, self.ngll, self.ngll))
-        self.jac3D = np.zeros((self.ngll, self.ngll, self.ngll))
+        self.jac    = np.zeros((3,3, self.ngll, self.ngll, self.ngll))
+        self.jacinv = np.zeros((3,3, self.ngll, self.ngll, self.ngll))
+        self.jac3D  = np.zeros((self.ngll, self.ngll, self.ngll))
 
-        # columns -> GLL nodes
-        # rows    -> order
         c = [self.coord_x, self.coord_y, self.coord_z]
 
         # Loop over GLL points to compute derivatives at
@@ -100,4 +126,5 @@ class Element():
 
                     # Store the jacobian
                     self.jac[:,:,s,t,n]   = J
+                    self.jacinv[:,:,s,t,n]   = np.linalg.inv(J)
                     self.jac3D[s,t,n] = np.linalg.det(J)

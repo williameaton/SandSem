@@ -65,6 +65,8 @@ m.link_ibool_to_element()
 m.set_homogenous_property('cijkl', 3e10)
 m.set_homogenous_property('density', 2500)
 
+m.write_global_coords
+
 m.setup_integration()
 
 m.create_mass_matrix()

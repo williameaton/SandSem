@@ -2,15 +2,22 @@
 
 ### General
 - [ ] Improve workflow for mesh generation
-- [ ] Add flexibility for multiple radial layers
-
+- [x] Add flexibility for multiple radial layers
 
 ### Mapping
 - [x] Check iglob --> ibool
 - [x] Create global coordinate arrays
-- [ ] Complete set_gll (GLL setup function in element/mesh)
+- [x] Complete set_gll (GLL setup function in element/mesh)
+- [x] Valency
 
-- [ ] Determine boundary terms
+### Boundaries
+- [x] Determine boundary elements
+- [x] Determine boundary faces
+
+### Sources
+- [ ] Function to seek element based on cartesian (or other?) coordinates
+- [ ] Spatial Gaussian function over an element as source?
+
 
 ### Integration
 - [x] 3D GLL weights

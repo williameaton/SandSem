@@ -40,12 +40,16 @@ class Hex():
             self.cnodes.append(n)
 
 
+        # Node ID ordering:
+        self.node_order = np.arange(ngll**3).reshape((ngll,ngll,ngll), order='F')
+
+
         # Set up faces:
         self.faces = []
-        self.faces.append(Face(1,  1, [1,2,6,5]))    # Face 1: + YZ
-        self.faces.append(Face(2,  1, [2,3,7,6]))    # Face 2: + XZ
-        self.faces.append(Face(3, -1, [4,3,7,8]))    # Face 3: - YZ
-        self.faces.append(Face(4, -1, [1,4,8,5]))    # Face 4: - XZ
-        self.faces.append(Face(5, -1, [1,2,3,4]))    # Face 5: - XY
-        self.faces.append(Face(6,  1, [5,6,7,8]))    # Face 6: + XY
+        self.faces.append(Face(1,  1, [1,2,6,5], self.node_order[-1, :, :]))   # Face 1: + YZ
+        self.faces.append(Face(2,  1, [2,3,7,6], self.node_order[:, -1, :]))   # Face 2: + XZ
+        self.faces.append(Face(3, -1, [4,3,7,8], self.node_order[0, :, :]))    # Face 3: - YZ
+        self.faces.append(Face(4, -1, [1,4,8,5], self.node_order[:, 0, :]))    # Face 4: - XZ
+        self.faces.append(Face(5, -1, [1,2,3,4], self.node_order[:, :, 0]))    # Face 5: - XY
+        self.faces.append(Face(6,  1, [5,6,7,8], self.node_order[:, :, -1]))   # Face 6: + XY
 

@@ -28,13 +28,3 @@ def Symplectic(Timescheme):
         super().__init__()
 
 
-
-
-class TransientVar():
-    def __init__(self, ndim, npoints):
-        # In general how many different time points we need to store may vary
-        # e.g. for a 5 point FD you would need to store the two previous timesteps
-        # where as for an FD3 you would only need the previous 1
-        self.prev = np.zeros((ndim, npoints))
-        self.now  = np.zeros((ndim, npoints))
-        self.next = np.zeros((ndim, npoints))
